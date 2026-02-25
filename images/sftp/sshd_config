@@ -1,0 +1,24 @@
+Port 22
+
+HostKey /etc/ssh/host_keys/ssh_host_ed25519_key
+HostKey /etc/ssh/host_keys/ssh_host_rsa_key
+
+# Authentication
+PasswordAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# SFTP only (all users)
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory /home/%u
+
+# Hardening
+X11Forwarding no
+AllowTcpForwarding no
+PermitTunnel no
+GatewayPorts no
+
+# Logging
+LogLevel INFO
