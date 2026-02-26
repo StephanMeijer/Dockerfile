@@ -8,7 +8,7 @@ fi
 
 # Create users from users.conf
 # Format: username::uid:gid (password field empty = no password)
-while IFS=: read -r user pass uid gid _; do
+while IFS=: read -r user _ uid gid _; do
     [ -z "$user" ] && continue
     case "$user" in \#*) continue ;; esac
 

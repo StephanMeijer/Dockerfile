@@ -3,8 +3,8 @@
 FROM alpine:3.21
 
 RUN apk add --no-cache \
-      openssh-server \
-      openssh-sftp-server \
+        openssh-server \
+        openssh-sftp-server \
     && rm -f /etc/ssh/ssh_host_* \
     && mkdir -p /etc/ssh/host_keys /etc/sftp/keys
 
