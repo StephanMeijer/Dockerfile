@@ -20,15 +20,8 @@ while IFS=: read -r user _ uid gid _; do
     chown root:root "/home/$user"
     chmod 755 "/home/$user"
 
-    # Place authorized_keys from mounted ConfigMap
-    if [ -f "/etc/sftp/keys/$user" ]; then
-        mkdir -p "/home/$user/.ssh"
-        cp "/etc/sftp/keys/$user" "/home/$user/.ssh/authorized_keys"
-        chmod 700 "/home/$user/.ssh"
-        chmod 600 "/home/$user/.ssh/authorized_keys"
-        chown -R "$uid:$gid" "/home/$user/.ssh"
-    else
-        echo "WARNING: No public key for user $user" >&2
+    if [ ! -f "/etc/sftp/keys/$user" ]; then
+        echo "WARNING: No public key for user $user at /etc/sftp/keys/$user" >&2
     fi
 done < /etc/sftp/users.conf
 
@@ -43,4 +36,4 @@ if [ ! -f /etc/ssh/host_keys/ssh_host_rsa_key ]; then
 fi
 
 echo "Starting sshd..."
-exec /usr/sbin/sshd -D -e
+exec /usr/sbin/sshd -D -e -o "LogLevel=${SFTP_LOG_LEVEL:-INFO}"

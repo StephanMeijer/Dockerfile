@@ -7,7 +7,7 @@ HostKey /etc/ssh/host_keys/ssh_host_rsa_key
 PasswordAuthentication no
 PermitRootLogin no
 PubkeyAuthentication yes
-AuthorizedKeysFile .ssh/authorized_keys
+AuthorizedKeysFile /etc/sftp/keys/%u
 
 # SFTP only (all users)
 Subsystem sftp internal-sftp
