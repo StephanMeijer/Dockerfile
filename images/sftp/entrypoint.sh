@@ -39,6 +39,10 @@ if [ "${GENERATE_SSH_HOST_KEY_RSA:-false}" = "true" ]; then
     fi
 fi
 
+# Ensure correct permissions regardless of how the volume was mounted
+# (guards against fsGroup or other mount-time chmod interference)
+chmod 0600 /etc/ssh/host_keys/ssh_host_*_key 2>/dev/null || true
+
 # Build HostKey args from all private keys present on disk
 hostkey_args=""
 for key in /etc/ssh/host_keys/ssh_host_*_key; do
