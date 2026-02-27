@@ -47,15 +47,66 @@ belongs to. The file contains one or more SSH public keys, one per line
 
 ### Host keys
 
-The entrypoint generates ed25519 and RSA host keys on first boot if they are
-not already present. Mount a persistent volume at `/etc/ssh/host_keys/` to
-retain keys across pod restarts (avoids SSH fingerprint warnings for clients).
+The entrypoint generates host keys on first boot if they are not already
+present, controlled per key type by environment variables. All `ssh_host_*_key`
+files found in `/etc/ssh/host_keys/` are automatically loaded into sshd at
+startup — no static `HostKey` lines in `sshd_config` are needed.
+
+Mount a persistent volume at `/etc/ssh/host_keys/` to retain keys across pod
+restarts (avoids SSH fingerprint warnings for clients). If the volume is empty,
+keys are auto-generated. If no keys exist and generation is disabled, the
+container exits with an error.
 
 ## Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
 | `SFTP_LOG_LEVEL` | `INFO` | sshd log level. Valid values: `QUIET`, `FATAL`, `ERROR`, `INFO`, `VERBOSE`, `DEBUG`, `DEBUG1`, `DEBUG2`, `DEBUG3` |
+| `GENERATE_SSH_HOST_KEY_ED25519` | `true` | Generate an ed25519 host key on first boot if not already present |
+| `GENERATE_SSH_HOST_KEY_RSA` | `false` | Generate a 4096-bit RSA host key on first boot if not already present |
+
+## Overriding sshd_config
+
+The image ships with a baked-in `/etc/ssh/sshd_config`. To override it
+completely, mount a custom config file over that path.
+
+> **Warning:** Any custom config must preserve the following directives or
+> the container will not function correctly:
+>
+> ```
+> AuthorizedKeysFile /etc/sftp/keys/%u
+> Subsystem sftp internal-sftp
+> ForceCommand internal-sftp
+> ChrootDirectory /home/%u
+> ```
+>
+> Do **not** add `HostKey` directives — they are injected dynamically by the
+> entrypoint from files in `/etc/ssh/host_keys/` and would conflict.
+
+### Docker
+
+```sh
+docker run -d \
+  -p 2222:22 \
+  -v /path/to/users.conf:/etc/sftp/users.conf:ro \
+  -v /path/to/keys:/etc/sftp/keys:ro \
+  -v /path/to/sshd_config:/etc/ssh/sshd_config:ro \
+  -v sftp-host-keys:/etc/ssh/host_keys \
+  ghcr.io/stephanmeijer/sftp:0.3.0
+```
+
+### Kubernetes (bjw-s/app-template)
+
+```yaml
+persistence:
+  sshd-config:
+    type: configMap
+    name: sftp-sshd-config
+    globalMounts:
+      - path: /etc/ssh/sshd_config
+        subPath: sshd_config
+        readOnly: true
+```
 
 ## Docker example
 
@@ -66,7 +117,7 @@ docker run -d \
   -v /path/to/keys:/etc/sftp/keys:ro \
   -v sftp-host-keys:/etc/ssh/host_keys \
   -v /data:/home/steve/data \
-  ghcr.io/stephanmeijer/sftp:0.1.0
+  ghcr.io/stephanmeijer/sftp:0.3.0
 ```
 
 ## Kubernetes usage

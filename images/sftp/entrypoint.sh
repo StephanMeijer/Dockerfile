@@ -26,14 +26,29 @@ while IFS=: read -r user _ uid gid _; do
 done < /etc/sftp/users.conf
 
 # Generate host keys on first boot (persist on PVC)
-if [ ! -f /etc/ssh/host_keys/ssh_host_ed25519_key ]; then
-    echo "Generating ed25519 host key..."
-    ssh-keygen -t ed25519 -f /etc/ssh/host_keys/ssh_host_ed25519_key -N ""
+if [ "${GENERATE_SSH_HOST_KEY_ED25519:-true}" = "true" ]; then
+    if [ ! -f /etc/ssh/host_keys/ssh_host_ed25519_key ]; then
+        echo "Generating ed25519 host key..."
+        ssh-keygen -t ed25519 -f /etc/ssh/host_keys/ssh_host_ed25519_key -N ""
+    fi
 fi
-if [ ! -f /etc/ssh/host_keys/ssh_host_rsa_key ]; then
-    echo "Generating RSA host key..."
-    ssh-keygen -t rsa -b 4096 -f /etc/ssh/host_keys/ssh_host_rsa_key -N ""
+if [ "${GENERATE_SSH_HOST_KEY_RSA:-false}" = "true" ]; then
+    if [ ! -f /etc/ssh/host_keys/ssh_host_rsa_key ]; then
+        echo "Generating RSA host key..."
+        ssh-keygen -t rsa -b 4096 -f /etc/ssh/host_keys/ssh_host_rsa_key -N ""
+    fi
+fi
+
+# Build HostKey args from all private keys present on disk
+hostkey_args=""
+for key in /etc/ssh/host_keys/ssh_host_*_key; do
+    [ -f "$key" ] || continue
+    hostkey_args="$hostkey_args -o HostKey=$key"
+done
+if [ -z "$hostkey_args" ]; then
+    echo "ERROR: No host keys found in /etc/ssh/host_keys/" >&2
+    exit 1
 fi
 
 echo "Starting sshd..."
-exec /usr/sbin/sshd -D -e -o "LogLevel=${SFTP_LOG_LEVEL:-INFO}"
+exec /usr/sbin/sshd -D -e $hostkey_args -o "LogLevel=${SFTP_LOG_LEVEL:-INFO}"

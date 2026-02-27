@@ -1,5 +1,5 @@
 # image: ghcr.io/stephanmeijer/sftp
-# tags: latest, 0.2.0
+# tags: latest, 0.3.0
 FROM alpine:3.21
 
 RUN apk add --no-cache \
