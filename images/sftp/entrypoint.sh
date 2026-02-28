@@ -15,6 +15,10 @@ while IFS=: read -r user _ uid gid _; do
     addgroup -g "$gid" "$user" 2>/dev/null || true
     adduser -D -u "$uid" -G "$user" -s /sbin/nologin \
             -h "/home/$user" "$user" 2>/dev/null || true
+    # Unlock the account: adduser -D sets shadow password to '!' (locked),
+    # which OpenSSH refuses even for pubkey auth. passwd -u sets it to '*'
+    # (disabled but not locked), allowing pubkey authentication.
+    passwd -u "$user" 2>/dev/null || true
 
     # ChrootDirectory requires home owned by root:root, mode 755
     chown root:root "/home/$user"
